@@ -1,7 +1,7 @@
 import operator
 from functools import wraps
 
-from lark import Lark, InlineTransformer
+from lark import Lark, Transformer, v_args
 
 from dice_parser.dice_roller import DiceRoller, HighestDiceModifier, DiceModifier, NullDiceModifier, LowestDiceModifier
 
@@ -24,6 +24,7 @@ class ParseResult:
     def operator(cls, operator_callable, template):
         def decorator(method):
             @wraps(method)
+            @v_args(inline=True)
             def decorated(decorated_self, *args):
                 return cls(
                     operator_callable(*(x.value for x in args)),
@@ -35,10 +36,12 @@ class ParseResult:
         return decorator
 
 
-class Transformer(InlineTransformer):
+class DiceTransformer(Transformer):
     def __init__(self):
+        super().__init__()
         self.vars = {}
 
+    @v_args(inline=True)
     def number(self, value):
         return ParseResult(int(value), str(int(value)), [])
 
@@ -62,23 +65,29 @@ class Transformer(InlineTransformer):
     def neg(self):
         pass
 
+    @v_args(inline=True)
     def dice_count(self, result):
         return self._add_flag(result, 'dice_count')
 
+    @v_args(inline=True)
     def dice_size(self, result):
         if result.value < 1:
             result.value = 0
         return self._add_flag(result, 'dice_size')
 
+    @v_args(inline=True)
     def dice_highest(self, result):
         return ParseResult(HighestDiceModifier(int(result.value)), None, 'dice_modifier')
 
+    @v_args(inline=True)
     def dice_lowest(self, result):
         return ParseResult(LowestDiceModifier(int(result.value)), None, 'dice_modifier')
 
+    @v_args(inline=True)
     def brackets(self, result):
         return ParseResult(result.value, '({})'.format(result.string))
 
+    @v_args(inline=True)
     def roll(self, *args):
         count = 1
         size = 20
@@ -96,6 +105,7 @@ class Transformer(InlineTransformer):
 
         return ParseResult(rolled_result, '[{}]'.format(', '.join(str(d) for d in rolled_dice)))
 
+    @v_args(inline=True)
     def assign_var(self, name, result):
         self.vars[name] = ParseResult(
             result.value,
@@ -107,6 +117,7 @@ class Transformer(InlineTransformer):
             '{} = {}'.format(name, result.string),
         )
 
+    @v_args(inline=True)
     def var(self, name):
         return self.vars[name]
 
@@ -150,7 +161,7 @@ class DiceParser:
     """
 
     def __init__(self):
-        self._parser = Lark(self.GRAMMAR, parser='lalr', transformer=Transformer())
+        self._parser = Lark(self.GRAMMAR, parser='lalr', transformer=DiceTransformer())
 
     def parse(self, string):
         return self._parser.parse(string)
