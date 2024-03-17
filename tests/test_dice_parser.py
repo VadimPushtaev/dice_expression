@@ -1,6 +1,7 @@
 from unittest import TestCase
 
-from dice_parser import DiceParser, DiceRoller
+from dice_parser.dice_roller import DiceRoller
+from dice_parser.parser import DiceParser
 
 
 class DiceExpressionTestCase(TestCase):

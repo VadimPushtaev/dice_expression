@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from dice_parser import DiceModifier
+from dice_parser.modifier import DiceModifier
 
 
 class SomeDiceModifier(DiceModifier):
